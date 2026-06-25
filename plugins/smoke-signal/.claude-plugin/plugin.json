@@ -1,0 +1,10 @@
+{
+  "name": "smoke-signal",
+  "displayName": "Smoke Signal",
+  "description": "Always-on Claude Code status readout: active project, live model and reasoning effort, session and project cost, and context-window usage. At 75% it raises a red compaction alert plus an animated fire-and-smoke widget. Ships a live effort-detection hook and a cross-session cost tracker.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Tony Baldwin"
+  },
+  "keywords": ["status-line", "statusline", "cost", "context", "tokens", "effort"]
+}

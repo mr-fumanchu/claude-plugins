@@ -1,0 +1,13 @@
+{
+  "name": "claude-plugins",
+  "owner": {
+    "name": "Tony Baldwin"
+  },
+  "plugins": [
+    {
+      "name": "smoke-signal",
+      "source": "./plugins/smoke-signal",
+      "description": "Always-on Claude Code status readout with a 75% animated compaction alert, live reasoning-effort detection, and cross-session cost tracking."
+    }
+  ]
+}
