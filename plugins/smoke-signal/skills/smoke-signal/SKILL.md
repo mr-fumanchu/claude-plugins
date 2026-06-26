@@ -152,7 +152,7 @@ The harness exposes the live reasoning effort, so neither surface guesses any mo
 
 ## Context Usage and the Alert
 
-**Context used** is read from the transcript: the last turn's input side (input + cache creation + cache read), which is the size of the window currently in play. It is shown against the model's window (Opus and Sonnet 1M, Haiku 200K) with a percent.
+**Context used** is read from the transcript: the last turn's input side (input + cache creation + cache read), which is the size of the window currently in play. It is shown against the live window for the active model variant (Opus and Fable 1M; Sonnet and Haiku 200K, with Sonnet reaching 1M only via the `sonnet[1m]` variant) with a percent.
 
 When usage reaches `ALERT_PCT` (default 75%), the ctx segment flips to the inline alert: bold red in the Terminal, and in the app footer the whole line is wrapped in a fenced ```diff``` block with a leading `-` so it paints red (no HTML, no emoji). At the same 75% mark the app also renders the compaction-alert widget (see below). No popup, nothing interrupts.
 

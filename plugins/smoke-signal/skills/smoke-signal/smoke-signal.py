@@ -48,14 +48,12 @@ PRICING = {
     "fable":  (15.0, 75.0),
 }
 
-# Context window per model family (tokens).
-WINDOWS = {
-    "haiku": 200_000,
-    "opus": 1_000_000,
-    "sonnet": 1_000_000,
-    "fable": 1_000_000,
-}
-DEFAULT_WINDOW = 1_000_000
+# Context window (tokens). In Claude Code the DEFAULT variant of every model is
+# 200k. The 1M window is a SEPARATE variant (e.g. sonnet[1m], opus[1m]) and only
+# applies when that variant is actually selected. We read the live value from the
+# harness, and never assume 1M from the model's theoretical spec.
+DEFAULT_WINDOW = 200_000
+ONE_M_WINDOW = 1_000_000
 
 # Friendly labels for known project folder names.
 PROJECT_LABELS = {
@@ -119,22 +117,48 @@ def derive_project(cwd):
     return PROJECT_LABELS.get(base.lower(), title_from_slug(base) or base)
 
 
-def model_and_window(model):
-    """Return (display_name, context_window) for the running model."""
+def model_name_of(model):
+    """Display name for the running model."""
     name = ""
-    mid = ""
     if isinstance(model, dict):
         name = model.get("display_name") or model.get("id") or ""
-        mid = (model.get("id") or "").lower()
-    blob = (mid + " " + name).lower()
-    window = DEFAULT_WINDOW
-    for key, w in WINDOWS.items():
-        if key in blob:
-            window = w
-            break
-    if not name:
-        name = "Claude"
-    return name, window
+    return name or "Claude"
+
+
+def resolve_window(payload, model):
+    """Context window in tokens for the ACTIVE model, read from the live system.
+    Priority:
+      1) an explicit window number the harness hands us (if it ever does),
+      2) a 1M-variant marker in the model id (e.g. sonnet[1m], opus[1m]),
+      3) the 200k default that every Claude Code model uses unless changed.
+    We never fill this in from the model's theoretical max."""
+    # 1) explicit number from the payload / model object, if present
+    containers = []
+    if isinstance(model, dict):
+        containers.append(model)
+    if isinstance(payload, dict):
+        containers.append(payload)
+    for c in containers:
+        for key in ("context_window", "contextWindow", "max_input_tokens",
+                    "maxInputTokens", "context_limit", "window"):
+            try:
+                v = int(c.get(key))
+                if v > 0:
+                    return v
+            except Exception:
+                pass
+    # 2) explicit 1M variant selected (e.g. sonnet[1m], opus[1m])
+    mid = ""
+    if isinstance(model, dict):
+        mid = ((model.get("id") or "") + " " + (model.get("display_name") or "")).lower()
+    if "[1m]" in mid or "1m" in mid or "1000000" in mid:
+        return ONE_M_WINDOW
+    # 3) default by model family (confirmed on Tony's plan 06-25-26): Opus and
+    #    Fable run the full 1M; Sonnet and Haiku default to 200k (Sonnet's 1M
+    #    only via the sonnet[1m] variant, caught above).
+    if "opus" in mid or "fable" in mid:
+        return ONE_M_WINDOW
+    return DEFAULT_WINDOW
 
 
 def get_effort(payload=None):
@@ -325,7 +349,9 @@ def main():
         cwd = ws.get("current_dir") or cwd or ws.get("project_dir") or ""
 
     project = derive_project(cwd)
-    model_name, window = model_and_window(payload.get("model"))
+    model_obj = payload.get("model")
+    model_name = model_name_of(model_obj)
+    window = resolve_window(payload, model_obj)
     effort = get_effort(payload)
 
     session_id = payload.get("session_id") or ""
