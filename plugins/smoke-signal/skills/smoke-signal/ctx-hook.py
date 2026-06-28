@@ -150,23 +150,28 @@ def main():
     window = resolve_window(model_id, data)
 
     if context_used > 0 and window > 0:
-        # The footer should match the live meter AFTER this reply lands, so print
-        # the projected value (measured context + typical recent per-turn growth).
-        show = projected if projected > 0 else context_used
+        # Print the MEASURED context as of the user's send. This is the only number
+        # that is provably exact at a known instant; it equals the live meter at
+        # send time and whenever the reply is short. Forward projection was dropped
+        # because it cannot anticipate a tool-heavy turn's own growth (the reply's
+        # work does not exist yet when the footer is written).
+        show = context_used
         pct = int(round(100.0 * show / window))
         ctx_str = "ctx ~{}/{} ({}%)".format(fmt_tokens(show), fmt_window(window), pct)
         try:
             with open(CTX_FILE, "w") as f:
-                f.write("{}|{}|{}|{}\n".format(show, window, pct, context_used))
+                f.write("{}|{}|{}|{}\n".format(show, window, pct, projected))
         except Exception:
             pass
         base = (
             "SMOKE SIGNAL CTX: print this EXACT ctx segment in the footer: {0}. This is "
-            "the projected context the live meter will read AFTER your reply lands "
-            "(measured context as of the user's send was {4} tokens; add the typical "
-            "recent per-turn growth to get {2}). Use these EXACT values - do NOT "
-            "re-estimate or round them differently. window={1}, usage={3}%."
-        ).format(ctx_str, fmt_window(window), show, pct, context_used)
+            "the MEASURED context (input + cache_creation + cache_read) as of the moment "
+            "the user hit enter - the only provably-exact value. It equals the user's "
+            "live meter at send time and whenever your reply is short; on a tool-heavy "
+            "turn the meter will climb above it as that work lands, which no pre-written "
+            "number can predict. Use these EXACT values - do NOT re-estimate or round "
+            "them differently. measured={2} tokens, window={1}, usage={3}%."
+        ).format(ctx_str, fmt_window(window), show, pct)
         if pct >= ALERT_PCT:
             alert = (
                 " ALERT STATE: usage is at or past 75%. Render the footer as a one-line "

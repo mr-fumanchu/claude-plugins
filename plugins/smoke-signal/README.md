@@ -6,7 +6,7 @@ An always-on status readout for Claude Code. One compact line shows the active p
 - `skills/smoke-signal/` — the skill (how-it-works and maintenance surface), the status-line engine `smoke-signal.py`, and the `widget/compaction-alert.html` flare.
 - `hooks/hooks.json` — three hooks:
   - `UserPromptSubmit` → `effort-hook.py`: reads the live reasoning effort and injects it so the footer is always correct (no guessing).
-  - `UserPromptSubmit` → `ctx-hook.py`: reads the real context usage from the transcript and projects it one step forward (measured context plus the user's typical recent per-turn growth), so the app footer lands on what the live meter reads after the reply instead of trailing it. Injects the exact ctx string and fires the 75% alert on the true threshold.
+  - `UserPromptSubmit` → `ctx-hook.py`: reads the real context usage from the transcript and injects the measured value as of the moment you hit enter, so the app footer matches your live context meter at send time instead of being a guess. Fires the 75% alert on the true threshold. (Note: the footer can't include its own reply's tokens, so on a tool-heavy turn your meter climbs above it as that work lands; the true post-reply number is only re-counted on the next turn.)
   - `Stop` → `cost-writer.py`: records session cost into `~/.claude/cost-totals.json` for the project total.
 
 ## Install
